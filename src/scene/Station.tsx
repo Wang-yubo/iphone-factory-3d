@@ -40,11 +40,6 @@ export function Station({ def, index }: { def: StationDef; index: number }) {
         document.body.style.cursor = 'auto'
       }}
     >
-      {/* 基座 */}
-      <mesh position={[0, 0.075, 0]} material={MATS.deepSteel()} receiveShadow castShadow>
-        <boxGeometry args={[W + 0.16, 0.15, D + 0.16]} />
-      </mesh>
-
       {/* 铝型材机架（型材 + 角码 + 调平脚 + 走线槽，合并成 1 个 mesh） */}
       <mesh geometry={frame.geometry} material={frame.material} castShadow receiveShadow />
 

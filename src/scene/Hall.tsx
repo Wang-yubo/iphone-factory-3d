@@ -1,4 +1,7 @@
+import { useMemo } from 'react'
 import { MATS } from '@/lib/materials'
+import { tintedMaterial } from './geo'
+import { hallServicesGeometry } from './hallServices'
 
 /** 车间骨架：后排立柱 + 两道屋架 + 悬挂灯带，用纵深把画面撑起来 */
 const COLUMNS = [-16.5, -10, -3.5, 3.5, 10, 16.5]
@@ -7,8 +10,13 @@ const BAR_X = [-12, -6.6, -1.2, 4.2, 9.6]
 const TRUSS_Y = 6.05
 
 export function Hall() {
+  const services = useMemo(hallServicesGeometry, [])
+
   return (
     <group>
+      {/* 管道 / 桥架 / 压顶 / 剪刀撑 */}
+      <mesh geometry={services} material={tintedMaterial()} castShadow receiveShadow />
+
       {/* 后排立柱 */}
       {COLUMNS.map((x) => (
         <group key={x} position={[x, 0, -8.6]}>

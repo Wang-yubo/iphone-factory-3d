@@ -14,6 +14,7 @@ const DARK = new THREE.Color('#2f353c')
 const RUBBER = new THREE.Color('#14181c')
 const YELLOW = new THREE.Color('#c19a26')
 const STEEL = new THREE.Color('#8b949c')
+const DEEP = new THREE.Color('#23282e')
 
 function tint(input: THREE.BufferGeometry, color: THREE.Color) {
   // mergeGeometries 要求索引状态一致：统一转成非索引
@@ -101,6 +102,19 @@ export function stationFrame() {
   const y0 = 0.15
   const y1 = 2.3
   const parts: THREE.BufferGeometry[] = []
+
+  // 设备底座：地台 + 四角调整垫板 + 地脚螺栓
+  parts.push(boxAt(W + 0.16, 0.15, D + 0.16, 0, 0.075, 0, DEEP))
+  parts.push(boxAt(W + 0.18, 0.02, D + 0.18, 0, 0.012, 0, RUBBER))
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      const px2 = sx * (W / 2 - 0.1)
+      const pz2 = sz * (D / 2 - 0.1)
+      parts.push(boxAt(0.2, 0.025, 0.2, px2, 0.16, pz2, STEEL))
+      parts.push(cylAt(0.022, 0.03, px2 - 0.05, 0.17, pz2, DARK))
+      parts.push(cylAt(0.022, 0.03, px2 + 0.05, 0.17, pz2, DARK))
+    }
+  }
 
   // 四根立柱
   for (const sx of [-1, 1]) {

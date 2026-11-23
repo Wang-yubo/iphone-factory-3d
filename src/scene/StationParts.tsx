@@ -13,7 +13,9 @@ import { MATERIAL_BY_ID, MATERIAL_SHORT } from '@/sim/recipes'
 import { sim } from '@/sim/sim'
 import { useFactory } from '@/store/useFactory'
 import { thock } from '@/lib/sfx'
+import { binHardwareGeometry } from './binHardware'
 import { binTargets } from './binRegistry'
+import { tintedMaterial } from './geo'
 import { perforatedTexture } from './stationFrame'
 import { StationHead } from './StationHeads'
 
@@ -225,6 +227,7 @@ export function Bin({
         const color = MATERIAL_BY_ID[slot.id].color
         return (
           <group key={slot.id} position={[i === 0 ? -offset : offset, 0, 0]}>
+            <mesh geometry={binHardwareGeometry(size)} material={tintedMaterial()} castShadow />
             <mesh material={MATS.glassTint(accent)}>
               <boxGeometry args={[size, 0.46, size]} />
               <Edges threshold={15} color={armed ? '#ffffff' : accent} />
