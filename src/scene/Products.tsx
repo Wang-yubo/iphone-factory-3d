@@ -38,7 +38,7 @@ const FORMS: Record<ItemId, Form> = {
   // 机壳：薄、带内腔
   shell: {
     w: 0.34,
-    h: 0.03,
+    h: 0.02,
     d: 0.165,
     r: 0.026,
     color: '#c9ced4',
@@ -50,7 +50,7 @@ const FORMS: Record<ItemId, Form> = {
   // 主板总成：绿色基板 + 金色芯片位
   boardAssy: {
     w: 0.2,
-    h: 0.012,
+    h: 0.008,
     d: 0.11,
     r: 0.004,
     color: '#1d6b47',
@@ -62,7 +62,7 @@ const FORMS: Record<ItemId, Form> = {
   // 屏装机壳：屏幕亮起
   displayAssy: {
     w: 0.34,
-    h: 0.032,
+    h: 0.022,
     d: 0.165,
     r: 0.026,
     color: '#b9c3cd',
@@ -75,7 +75,7 @@ const FORMS: Record<ItemId, Form> = {
 
   batteryAssy: {
     w: 0.34,
-    h: 0.034,
+    h: 0.024,
     d: 0.165,
     r: 0.026,
     color: '#414952',
@@ -88,7 +88,7 @@ const FORMS: Record<ItemId, Form> = {
 
   phoneBody: {
     w: 0.34,
-    h: 0.036,
+    h: 0.025,
     d: 0.165,
     r: 0.026,
     color: '#e7ecf1',
@@ -101,7 +101,7 @@ const FORMS: Record<ItemId, Form> = {
 
   phoneOk: {
     w: 0.345,
-    h: 0.036,
+    h: 0.024,
     d: 0.168,
     r: 0.027,
     color: '#eef3f8',
@@ -114,24 +114,24 @@ const FORMS: Record<ItemId, Form> = {
 
   phone: {
     w: 0.35,
-    h: 0.036,
+    h: 0.023,
     d: 0.17,
     r: 0.027,
     color: '#f5f9fd',
     metalness: 0.5,
     roughness: 0.24,
-    screen: { sw: 0.9, sd: 0.91, color: '#102838', emissive: '#6fe0ff', intensity: 1 },
+    screen: { sw: 0.92, sd: 0.92, color: '#0f2735', emissive: '#6fe0ff', intensity: 1.2 },
     notch: true,
     buttons: true,
   },
 
-  defect: { w: 0.34, h: 0.03, d: 0.165, r: 0.026, color: '#c3ced8', metalness: 0.7, roughness: 0.35 },
+  defect: { w: 0.34, h: 0.021, d: 0.165, r: 0.026, color: '#c3ced8', metalness: 0.7, roughness: 0.35 },
 
   // 原料件
   glass: { w: 0.3, h: 0.012, d: 0.15, r: 0.018, color: '#9fe3ff', metalness: 0.2, roughness: 0.06 },
   battery: { w: 0.18, h: 0.04, d: 0.1, r: 0.008, color: '#2b2f36', metalness: 0.3, roughness: 0.6 },
   camera: { w: 0.05, h: 0.03, d: 0.05, r: 0.01, color: '#a78bfa', metalness: 0.5, roughness: 0.3 },
-  board: { w: 0.2, h: 0.012, d: 0.11, r: 0.004, color: '#1d6b47', metalness: 0.15, roughness: 0.72 },
+  board: { w: 0.2, h: 0.008, d: 0.11, r: 0.004, color: '#1d6b47', metalness: 0.15, roughness: 0.72 },
   soc: { w: 0.09, h: 0.012, d: 0.09, r: 0.003, color: '#d9b45b', metalness: 0.6, roughness: 0.35 },
   box: { w: 0.3, h: 0.11, d: 0.21, r: 0.01, color: '#e8e2d4', metalness: 0.05, roughness: 0.8 },
 }
@@ -202,7 +202,7 @@ function buildAssets(): Record<ItemId, Asset> {
     // 灵动岛：贴在屏幕的一端
     let notchGeo: THREE.BufferGeometry | undefined
     if (f.notch) {
-      const g = new THREE.BoxGeometry(0.058, 0.004, 0.013)
+      const g = new THREE.BoxGeometry(0.055, 0.0015, 0.012)
       g.translate(f.w / 2 - 0.045, f.h / 2 + 0.0015, 0)
       notchGeo = g
     }
@@ -280,7 +280,8 @@ export function Products() {
             screen.geometry = asset.screenGeo!
             screen.material = asset.screenMat!
           }
-          screen.position.y = bodyY + 0.0012
+          // 屏幕必须贴在机身上表面：bodyY 是机身中心，要再加半厚
+          screen.position.y = bodyY + asset.halfY + 0.0012
         }
       }
 
@@ -292,7 +293,7 @@ export function Products() {
             notch.userData.key = p.item
             notch.geometry = asset.notchGeo!
           }
-          notch.position.y = bodyY + 0.0035
+          notch.position.y = bodyY + asset.halfY + 0.0021
         }
       }
     }
