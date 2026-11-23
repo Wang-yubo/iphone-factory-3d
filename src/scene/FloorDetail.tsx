@@ -63,6 +63,33 @@ export function FloorDetail() {
     return merged
   }, [])
 
+  // 工位前的暖色工作光池
+  const workPools = useMemo(() => {
+    const list: THREE.BufferGeometry[] = []
+    for (let i = 0; i < STATIONS.length; i++) {
+      const g = new THREE.PlaneGeometry(2.5, 1.9)
+      g.rotateX(-Math.PI / 2)
+      g.translate(stationX(i), 0.019, 2.0)
+      list.push(g)
+    }
+    const merged = mergeGeometries(list, false)!
+    for (const g of list) g.dispose()
+    return merged
+  }, [])
+
+  // 顶部 FFU 的光柱（极淡，只为空气感）
+  const shafts = useMemo(() => {
+    const list: THREE.BufferGeometry[] = []
+    for (const x of [-12, -6, 0, 6, 12]) {
+      const g = new THREE.ConeGeometry(2.2, 6.1, 18, 1, true)
+      g.translate(x, 3.1, -1.5)
+      list.push(g)
+    }
+    const merged = mergeGeometries(list, false)!
+    for (const g of list) g.dispose()
+    return merged
+  }, [])
+
   const poolMat = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
@@ -70,6 +97,30 @@ export function FloorDetail() {
         transparent: true,
         opacity: 0.5,
         depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    [],
+  )
+  const workMat = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        map: lightPoolTexture(),
+        color: '#ffdca8',
+        transparent: true,
+        opacity: 0.34,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    [],
+  )
+  const shaftMat = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color: '#cfe8ff',
+        transparent: true,
+        opacity: 0.028,
+        depthWrite: false,
+        side: THREE.DoubleSide,
         blending: THREE.AdditiveBlending,
       }),
     [],
@@ -82,15 +133,21 @@ export function FloorDetail() {
   useEffect(() => {
     return () => {
       pools.dispose()
+      workPools.dispose()
+      shafts.dispose()
       mats.dispose()
       poolMat.dispose()
+      workMat.dispose()
+      shaftMat.dispose()
       matMat.dispose()
     }
-  }, [pools, mats, poolMat, matMat])
+  }, [pools, workPools, shafts, mats, poolMat, workMat, shaftMat, matMat])
 
   return (
     <group>
+      <mesh geometry={shafts} material={shaftMat} />
       <mesh geometry={pools} material={poolMat} />
+      <mesh geometry={workPools} material={workMat} />
       <mesh geometry={mats} material={matMat} receiveShadow />
     </group>
   )

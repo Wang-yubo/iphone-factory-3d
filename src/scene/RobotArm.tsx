@@ -122,6 +122,15 @@ function buildArm(accent: string) {
   cyl(fore, 0.05, 0.05, 0.02, 0, 0.615, 0, STEEL)
   cyl(fore, 0.012, 0.012, 0.5, -0.05, 0.28, 0, RUBBER)
 
+  // 小臂拖链：从肘部一路走到腕部
+  for (const dz of [-0.045, -0.06]) {
+    cyl(fore, 0.012, 0.012, 0.52, 0.052, 0.28, dz, RUBBER)
+  }
+  for (let i = 0; i < 6; i++) {
+    const y = 0.06 + i * 0.09
+    box(fore, 0.03, 0.035, 0.05, 0.052, y, -0.052, DARK)
+  }
+
   // ---------- 腕 + 夹爪 ----------
   box(end, 0.1, 0.05, 0.12, 0, 0.03, 0, DARK)
   box(end, 0.12, 0.02, 0.03, 0, 0.045, 0.06, STEEL) // 导轨

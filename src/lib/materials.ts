@@ -41,7 +41,7 @@ export function mat(color: string, opts: MatOpts = {}): THREE.MeshStandardMateri
 
 /** 常用材质，语义化命名，避免各处手写数值 */
 export const MATS = {
-  aluminum: () => mat('#c3c9d0', { roughness: 0.32, metalness: 0.85 }),
+  aluminum: () => mat('#cdd2d8', { roughness: 0.26, metalness: 0.9 }),
   aluminumDark: () => mat('#9aa1a9', { roughness: 0.4, metalness: 0.8 }),
   steel: () => mat('#7d848c', { roughness: 0.45, metalness: 0.7 }),
   darkSteel: () => mat('#3b424a', { roughness: 0.55, metalness: 0.5 }),

@@ -8,7 +8,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
  * 没有它，金属件（metalness > 0.6）会因为无处可反射而发黑。
  * 零外部资源：不下载任何 HDR。
  */
-export function StudioEnvironment({ intensity = 1.15 }: { intensity?: number }) {
+export function StudioEnvironment({ intensity = 1.0 }: { intensity?: number }) {
   const gl = useThree((s) => s.gl)
   const scene = useThree((s) => s.scene)
 
