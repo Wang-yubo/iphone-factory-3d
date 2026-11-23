@@ -1,5 +1,8 @@
 # iPhone 生产线 · 3D 智能工厂
 
+**[▶ 在线体验](https://wang-yubo.github.io/iphone-factory-3d/)** · 桌面 Chrome / Safari，1280px 以上宽度最佳
+
+
 一个跑在浏览器里的 3D 手机工厂模拟器：手动投料 → 启动产线 → 看着手机从铝锭、玻璃、芯片，
 在传送带上依次经过 7 个工站，最终变成一台成品 iPhone 落到出货货架上。
 
