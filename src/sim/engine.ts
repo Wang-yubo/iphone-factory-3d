@@ -40,6 +40,8 @@ export interface Product {
   model: ModelId
   /** 来料就带缺陷：S6 一定判不良 */
   flawed: boolean
+  /** 上线时刻，用于 HUD 显示在制时长 */
+  born: number
   mode: ProductMode
   t: number
 }
@@ -374,6 +376,7 @@ export function stepSim(s: SimState, rawDt: number, opts: StepOpts) {
           item: def.output,
           model: s.model,
           flawed: opts.rng() < (opts.incomingDefect ?? 0),
+          born: s.time,
           mode: 'moving',
           t: 0,
         })

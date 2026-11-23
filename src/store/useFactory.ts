@@ -69,6 +69,8 @@ interface FactoryStore {
   difficulty: Difficulty
   /** 0=投料 1=启动 2=看成品 3=结束 */
   guideStep: number
+  /** 正在跟随的在制品 */
+  focusProductId: number | null
 
   start: () => void
   togglePause: () => void
@@ -86,6 +88,7 @@ interface FactoryStore {
   showToast: (text: string, kind?: Toast['kind']) => void
   cycleQuality: () => void
   cycleDifficulty: () => void
+  focusProduct: (id: number | null) => void
   setQuality: (q: Quality) => void
   advanceGuide: (step: number) => void
   skipGuide: () => void
@@ -108,6 +111,7 @@ export const useFactory = create<FactoryStore>((set, get) => ({
   quality: readQuality(),
   difficulty: readDifficulty(),
   guideStep: FLAGS.guide ? 0 : readGuideDone() ? 3 : 0,
+  focusProductId: null,
 
   start: () => set((s) => (s.lineState === 'idle' ? { lineState: 'running' } : s)),
   togglePause: () =>
@@ -135,6 +139,7 @@ export const useFactory = create<FactoryStore>((set, get) => ({
       hoverBin: null,
       toast: null,
       guideStep: readGuideDone() ? 3 : 0,
+      focusProductId: null,
     })
   },
 
@@ -179,6 +184,7 @@ export const useFactory = create<FactoryStore>((set, get) => ({
       }
       return { difficulty: next }
     }),
+  focusProduct: (id) => set({ focusProductId: id }),
   advanceGuide: (step) => set((s) => (s.guideStep >= step ? s : { guideStep: step })),
   skipGuide: () =>
     set(() => {

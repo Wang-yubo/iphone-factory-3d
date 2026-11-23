@@ -1337,3 +1337,108 @@ kbd {
   vertical-align: middle;
   opacity: 0.9;
 }
+
+/* 在制品跟随卡片 */
+.product-card {
+  position: absolute;
+  top: 302px;
+  right: 16px;
+  width: 218px;
+  padding: 9px 12px 10px;
+  background: rgba(10, 16, 22, 0.93);
+  border: 1px solid rgba(47, 184, 255, 0.35);
+  border-radius: var(--radius);
+  box-shadow: 0 0 28px -12px var(--accent), 0 16px 40px rgba(0, 0, 0, 0.5);
+  animation: fade 0.2s ease;
+}
+
+.product-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.product-card__close {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.product-card__close:hover {
+  color: #dff2ff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.product-card__name {
+  margin: 3px 0 5px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #eaf6ff;
+}
+
+.product-card__meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 10.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.product-card__model {
+  font-family: var(--mono);
+  font-size: 9.5px;
+}
+
+.product-card__bar {
+  height: 3px;
+  margin: 7px 0 6px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.product-card__bar i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #2fb8ff, #57d99a);
+  box-shadow: 0 0 10px rgba(47, 184, 255, 0.7);
+  transition: width 0.3s ease;
+}
+
+.product-card__hint {
+  font-size: 9.5px;
+  color: var(--dim);
+}
+
+/* 侧栏的"跟随"入口 */
+.rail__follow {
+  padding: 2px 7px;
+  border-radius: 7px;
+  border: 1px solid rgba(47, 184, 255, 0.35);
+  background: rgba(47, 184, 255, 0.12);
+  color: #a8dcf5;
+  font: inherit;
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rail__follow:hover {
+  background: rgba(47, 184, 255, 0.24);
+  color: #e4f6ff;
+  border-color: rgba(47, 184, 255, 0.65);
+}

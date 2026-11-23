@@ -100,6 +100,11 @@ export function Loop() {
       }
     }
 
+    // 跟随目标下线/报废后自动退出
+    if (state.focusProductId != null && !sim.products.some((v) => v.id === state.focusProductId)) {
+      state.focusProduct(null)
+    }
+
     pub.current += delta
     if (pub.current >= 0.12) {
       pub.current = 0

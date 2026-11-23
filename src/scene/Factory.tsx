@@ -46,8 +46,9 @@ export function Factory() {
         far: 140,
       }}
       onPointerMissed={() => {
-        const { focusStationId, focusStation } = useFactory.getState()
-        if (focusStationId !== null) focusStation(null)
+        const st = useFactory.getState()
+        if (st.focusStationId !== null) st.focusStation(null)
+        if (st.focusProductId !== null) st.focusProduct(null)
       }}
     >
       <color attach="background" args={[C.bg]} />

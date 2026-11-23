@@ -42,6 +42,8 @@ export function Hud() {
   const view = useFactory((s) => s.view)
   const speed = useFactory((s) => s.speed)
   const focusStationId = useFactory((s) => s.focusStationId)
+  const focusId = useFactory((s) => s.focusProductId)
+  const setFocusProduct = useFactory((s) => s.focusProduct)
   const drag = useFactory((s) => s.drag)
   const selected = useFactory((s) => s.selected)
   const toast = useFactory((s) => s.toast)
@@ -160,6 +162,7 @@ export function Hud() {
   const rate = yieldRate(sim)
   const actualUph = Math.round(uph(sim))
   const latest = sim.events[sim.events.length - 1]
+  const focus = focusId != null ? sim.products.find((v) => v.id === focusId) : undefined
   const order = activeOrder(sim)
   const orderModel = order ? MODELS[order.model] : null
   const changeover = sim.changeover
@@ -324,10 +327,43 @@ export function Hud() {
         </div>
       )}
 
+      {focus && (
+        <aside className="product-card">
+          <div className="product-card__head">
+            <span>在制品 #{focus.id}</span>
+            <button className="product-card__close" onClick={() => setFocusProduct(null)}>
+              ×
+            </button>
+          </div>
+          <div className="product-card__name">{ITEM_NAMES[focus.item]}</div>
+          <div className="product-card__meta">
+            <span className={`product-card__model`} style={{ color: MODELS[focus.model].accent }}>
+              {MODELS[focus.model].short}
+            </span>
+            <span>阶段 {focus.stage}/7</span>
+            <span>{(sim.time - focus.born).toFixed(1)}s</span>
+          </div>
+          <div className="product-card__bar">
+            <i style={{ width: `${(focus.stage / 7) * 100}%` }} />
+          </div>
+          <div className="product-card__hint">镜头已跟随，可继续旋转缩放</div>
+        </aside>
+      )}
+
       <aside className="rail">
         <div className="rail__title">
           <span>产线工站</span>
-          <span className="rail__meta">{sim.products.length} 在制</span>
+          {sim.products.length > 0 ? (
+            <button
+              className="rail__follow"
+              onClick={() => setFocusProduct(sim.products[0].id)}
+              title="跟随线上第一件在制品"
+            >
+              {sim.products.length} 在制 · 跟随
+            </button>
+          ) : (
+            <span className="rail__meta">0 在制</span>
+          )}
         </div>
         <ul>
           {STATIONS.map((s) => {

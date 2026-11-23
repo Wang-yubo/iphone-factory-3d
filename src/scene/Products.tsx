@@ -5,6 +5,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { LINE } from '@/lib/layout'
 import { sim } from '@/sim/sim'
+import { useFactory } from '@/store/useFactory'
 import type { ItemId } from '@/sim/recipes'
 
 const POOL = 30
@@ -215,11 +216,28 @@ function buildAssets(): Record<ItemId, Asset> {
 
 const NOTCH_MAT = new THREE.MeshStandardMaterial({ color: '#05080a', roughness: 0.4, metalness: 0.1 })
 
+/** 在制品只有几厘米宽，用球形拾取体放大点击范围 */
+function sphereRaycast(radius: number) {
+  const sphere = new THREE.Sphere()
+  const center = new THREE.Vector3()
+  return function (this: THREE.Object3D, raycaster: THREE.Raycaster, intersects: THREE.Intersection[]) {
+    this.getWorldPosition(center)
+    sphere.set(center, radius)
+    if (raycaster.ray.intersectsSphere(sphere)) {
+      intersects.push({ distance: raycaster.ray.origin.distanceTo(center), point: center.clone(), object: this })
+    }
+  }
+}
+
+
 export function Products() {
   const groups = useRef<(THREE.Group | null)[]>([])
+  const focusId = useFactory((s) => s.focusProductId)
   const bodies = useRef<(THREE.Mesh | null)[]>([])
   const screens = useRef<(THREE.Mesh | null)[]>([])
   const notches = useRef<(THREE.Mesh | null)[]>([])
+  const lifts = useRef<number[]>([])
+  const ringRef = useRef<THREE.Mesh>(null)
 
   const assets = useMemo(buildAssets, [])
 
@@ -236,8 +254,9 @@ export function Products() {
     }
   }, [assets])
 
-  useFrame((state) => {
+  useFrame((state, dt) => {
     const t = state.clock.elapsedTime
+    if (ringRef.current) ringRef.current.visible = false
     for (let i = 0; i < POOL; i++) {
       const g = groups.current[i]
       if (!g) continue
@@ -260,7 +279,11 @@ export function Products() {
       }
 
       const scale = p.model === 'air' ? 0.94 : 1
-      const lift = p.mode === 'processing' ? 0.36 : p.mode === 'entering' ? 0.12 * Math.min(1, p.t * 2) : 0
+      // 抬升缓动：进站时工件被"端起来"，出站再落下
+      const targetLift = p.mode === 'processing' ? 0.36 : 0
+      const prevLift = lifts.current[i] ?? 0
+      const lift = prevLift + (targetLift - prevLift) * Math.min(1, dt * 11)
+      lifts.current[i] = lift
       const bob = p.mode === 'processing' ? Math.sin(t * 12) * 0.004 : 0
       const bodyY = lift + asset.halfY
 
@@ -285,6 +308,13 @@ export function Products() {
         }
       }
 
+      if (ringRef.current && focusId === p.id) {
+        ringRef.current.visible = true
+        ringRef.current.position.set(p.x, LINE.beltY + 0.012, 0)
+        const k = 1 + Math.sin(t * 4) * 0.06
+        ringRef.current.scale.setScalar(k)
+      }
+
       if (notch) {
         const on = Boolean(asset.notchGeo)
         notch.visible = on
@@ -301,6 +331,10 @@ export function Products() {
 
   return (
     <group>
+      <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
+        <ringGeometry args={[0.26, 0.31, 44]} />
+        <meshBasicMaterial color="#2fb8ff" transparent opacity={0.85} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
       {Array.from({ length: POOL }, (_, i) => (
         <group
           key={i}
@@ -314,6 +348,18 @@ export function Products() {
               bodies.current[i] = el
             }}
             castShadow
+            raycast={sphereRaycast(0.45) as unknown as THREE.Mesh['raycast']}
+            onClick={(e) => {
+              e.stopPropagation()
+              const prod = sim.products[i]
+              if (prod) useFactory.getState().focusProduct(prod.id)
+            }}
+            onPointerOver={() => {
+              document.body.style.cursor = 'pointer'
+            }}
+            onPointerOut={() => {
+              document.body.style.cursor = 'auto'
+            }}
           />
           <mesh
             ref={(el) => {
