@@ -16,6 +16,7 @@ import { Effects } from './Effects'
 import { Ground } from './Ground'
 import { Hall } from './Hall'
 import { Lights } from './Lights'
+import { Logistics } from './Logistics'
 import { Loop } from './Loop'
 import { ScrapArea } from './Scrap'
 import { Shipments } from './Shipments'
@@ -60,6 +61,7 @@ export function Factory() {
         <Lights shadowMapSize={quality === 'high' ? 2048 : 1024} />
         <Hall />
         <Workshop />
+        <Logistics />
         <Ground />
         <Conveyor />
         <Products />

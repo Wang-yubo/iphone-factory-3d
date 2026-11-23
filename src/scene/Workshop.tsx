@@ -251,16 +251,6 @@ function buildEmissive() {
   for (const x of [-6, 7.5]) {
     box(p, 0.7, 0.22, 0.05, x, 3.4, WALL_Z + 0.22, new THREE.Color('#3ddc84'))
   }
-  // 老化架上的测试指示灯
-  for (let r = 0; r < 2; r++) {
-    const x0 = 12.4 + r * 1.9
-    for (let s = 0; s < 3; s++) {
-      for (let i = 0; i < 4; i++) {
-        box(p, 0.1, 0.006, 0.18, x0 + 0.3 + i * 0.38, 0.48 + s * 0.55, WALL_Z + 1.2, new THREE.Color('#2fb8ff'))
-      }
-    }
-  }
-
   return merge(p)
 }
 
