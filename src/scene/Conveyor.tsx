@@ -2,13 +2,11 @@ import { useFrame } from '@react-three/fiber'
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { LINE } from '@/lib/layout'
-import { MATS } from '@/lib/materials'
-import { C } from '@/lib/palette'
 import { BELT_SPEED } from '@/sim/engine'
 import { useFactory } from '@/store/useFactory'
+import { conveyorFrame } from './conveyorFrame'
 
 const LEN = LINE.x1 - LINE.x0
-const HALF_W = LINE.beltW / 2
 
 /** 程序化生成皮带纹理：斜向人字纹，运行时无外部贴图 */
 function useBeltTexture() {
@@ -37,6 +35,16 @@ function useBeltTexture() {
       g.lineTo(i + 136, 128)
       g.stroke()
     }
+    // 使用后的磨损痕迹
+    g.strokeStyle = 'rgba(255,255,255,0.025)'
+    g.lineWidth = 10
+    for (let i = 0; i < 6; i++) {
+      const y = 20 + i * 18
+      g.beginPath()
+      g.moveTo(0, y)
+      g.lineTo(128, y + 3)
+      g.stroke()
+    }
 
     const tex = new THREE.CanvasTexture(c)
     tex.wrapS = THREE.RepeatWrapping
@@ -50,6 +58,7 @@ function useBeltTexture() {
 
 export function Conveyor() {
   const tex = useBeltTexture()
+  const frame = conveyorFrame()
   const cx = (LINE.x0 + LINE.x1) / 2
 
   // 皮带纹理滚动：跑得越快，人字纹走得越快
@@ -60,70 +69,15 @@ export function Conveyor() {
   })
 
   return (
-    <group position={[cx, 0, 0]}>
+    <group>
+      {/* 机架：侧框 / 支腿 / 导条 / 驱动 / 控制盒 / 桥架，全部合并成 1 个 mesh */}
+      <mesh geometry={frame.geometry} material={frame.material} castShadow receiveShadow />
+
       {/* 带面 */}
-      <mesh position={[0, LINE.beltY + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <mesh position={[cx, LINE.beltY + 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[LEN, LINE.beltW]} />
-        <meshStandardMaterial map={tex} roughness={0.95} metalness={0.04} />
+        <meshStandardMaterial map={tex} roughness={0.94} metalness={0.05} />
       </mesh>
-
-      {/* 带体 */}
-      <mesh position={[0, LINE.beltY - 0.04, 0]} material={MATS.rubber()} castShadow receiveShadow>
-        <boxGeometry args={[LEN, 0.07, LINE.beltW]} />
-      </mesh>
-
-      {/* 两侧导轨 */}
-      {[-1, 1].map((s) => (
-        <mesh
-          key={s}
-          position={[0, LINE.beltY + 0.035, s * (HALF_W + 0.025)]}
-          material={MATS.aluminum()}
-          castShadow
-        >
-          <boxGeometry args={[LEN, 0.055, 0.035]} />
-        </mesh>
-      ))}
-
-      {/* 侧裙板 */}
-      {[-1, 1].map((s) => (
-        <mesh
-          key={s}
-          position={[0, LINE.beltY - 0.16, s * (HALF_W + 0.03)]}
-          material={MATS.aluminumDark()}
-          receiveShadow
-        >
-          <boxGeometry args={[LEN, 0.2, 0.035]} />
-        </mesh>
-      ))}
-
-      {/* 支撑腿（成对） */}
-      {[-1, 1].map((side) =>
-        [LINE.x0 + 0.55, LINE.x1 - 0.55].map((legX) => (
-          <group key={`${side}-${legX}`} position={[legX - cx, 0, side * 0.36]}>
-            <mesh position={[0, (LINE.beltY - 0.16) / 2, 0]} material={MATS.darkSteel()} castShadow>
-              <boxGeometry args={[0.07, LINE.beltY - 0.16, 0.07]} />
-            </mesh>
-            <mesh position={[0, 0.02, -side * 0.18]} material={MATS.darkSteel()}>
-              <boxGeometry args={[0.16, 0.04, 0.44]} />
-            </mesh>
-          </group>
-        )),
-      )}
-
-      {/* 两端驱动/张紧装置 */}
-      {[-1, 1].map((s) => (
-        <group key={s} position={[s * (LEN / 2 - 0.06), 0, 0]}>
-          <mesh position={[0, LINE.beltY - 0.06, 0]} rotation={[0, 0, Math.PI / 2]} material={MATS.darkSteel()}>
-            <cylinderGeometry args={[0.11, 0.11, LINE.beltW + 0.1, 20]} />
-          </mesh>
-          <mesh position={[0, LINE.beltY - 0.34, 0]} material={MATS.steel()} castShadow>
-            <boxGeometry args={[0.24, 0.5, LINE.beltW + 0.22]} />
-          </mesh>
-          <mesh position={[s * 0.06, LINE.beltY - 0.34, 0.3]} material={MATS.glow(C.accent, 0.9)}>
-            <boxGeometry args={[0.03, 0.05, 0.05]} />
-          </mesh>
-        </group>
-      ))}
     </group>
   )
 }

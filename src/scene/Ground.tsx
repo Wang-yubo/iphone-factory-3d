@@ -1,5 +1,6 @@
 import { Grid } from '@react-three/drei'
 import { GROUND, LINE } from '@/lib/layout'
+import { GROUND_MARKS_SIZE, groundMarksTexture } from './groundMarks'
 import { C } from '@/lib/palette'
 
 /** 车间地面：深灰哑光 + 网格线 + 产线安全区 */
@@ -35,13 +36,11 @@ export function Ground() {
         infiniteGrid={false}
       />
 
-      {/* 安全黄线 */}
-      {[-2.45, 2.45].map((z) => (
-        <mesh key={z} position={[cx, 0.006, z]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[len + 7, 0.05]} />
-          <meshBasicMaterial color={C.safety} transparent opacity={0.45} />
-        </mesh>
-      ))}
+      {/* 地面标线：安全区 / 工站落位 / 物流箭头 / 人行通道 */}
+      <mesh position={[cx, 0.008, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={1}>
+        <planeGeometry args={[GROUND_MARKS_SIZE[0], GROUND_MARKS_SIZE[1]]} />
+        <meshBasicMaterial map={groundMarksTexture()} transparent depthWrite={false} />
+      </mesh>
 
       {/* 地面接收阴影的暗部收边 */}
       <mesh position={[cx, 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
