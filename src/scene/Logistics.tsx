@@ -1,6 +1,13 @@
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
+import { stationX } from '@/lib/layout'
+import { binCap } from '@/sim/engine'
+import { binSlots, feed } from '@/sim/feed'
+import { MATERIAL_BY_ID, type MaterialId } from '@/sim/recipes'
+import { sim } from '@/sim/sim'
+import { thock } from '@/lib/sfx'
+import { useFactory } from '@/store/useFactory'
 import { COL, box, cyl, merge, tintedMaterial } from './geo'
 
 /**
@@ -12,22 +19,37 @@ import { COL, box, cyl, merge, tintedMaterial } from './geo'
 
 // ---------------- AGV ----------------
 
-const PATH = { x0: -13.2, x1: 10.8, z0: 4.9, z1: 6.9 }
-const SPEED = 1.15
-const DWELL = 3.2
+/** 线边暂存区（取货点）与产线前的行驶通道 */
+const PICKUP = { x: -13.5, z: 3.05 }
+const LANE_Z = 2.15
+const SPEED = 1.25
+const LOAD_TIME = 2.6
+const UNLOAD_TIME = 3.0
+
+type Phase = 'idle' | 'loading' | 'toStation' | 'unloading' | 'returning'
+
+interface Task {
+  stationId: number
+  material: MaterialId
+  amount: number
+}
 
 function agvGeometry() {
   const p: THREE.BufferGeometry[] = []
-  // 车体
   box(p, 0.92, 0.24, 0.66, 0, 0.18, 0, new THREE.Color('#3d4650'))
   box(p, 0.98, 0.05, 0.72, 0, 0.325, 0, new THREE.Color('#c2c9d0'))
-  // 防撞条
   box(p, 0.06, 0.1, 0.68, 0.48, 0.15, 0, COL.yellow)
   box(p, 0.06, 0.1, 0.68, -0.48, 0.15, 0, COL.yellow)
-  // 托盘 + 货箱
+  // 车头方向指示灯条
+  box(p, 0.02, 0.05, 0.5, 0.5, 0.3, 0, COL.deep)
+  return merge(p)
+}
+
+function agvCargo() {
+  const p: THREE.BufferGeometry[] = []
   box(p, 0.78, 0.06, 0.58, 0, 0.37, 0, COL.wood)
-  box(p, 0.5, 0.32, 0.4, -0.08, 0.56, 0, COL.aluDark)
-  box(p, 0.44, 0.26, 0.34, 0.12, 0.42, 0.02, COL.steel)
+  box(p, 0.5, 0.32, 0.4, -0.06, 0.56, 0, COL.aluDark)
+  box(p, 0.4, 0.24, 0.32, 0.12, 0.42, 0.02, COL.steel)
   return merge(p)
 }
 
@@ -42,31 +64,48 @@ function agvWheels() {
   return merge(p)
 }
 
-/** 圆角矩形巡游路径：前沿向东，末端折返，后排向西 */
-function pathPoint(dist: number) {
-  const w = PATH.x1 - PATH.x0
-  const h = PATH.z1 - PATH.z0
-  const perim = 2 * (w + h)
-  let d = dist % perim
-  const corners = [w, w + h, 2 * w + h, perim]
-
-  if (d <= corners[0]) return { x: PATH.x0 + d, z: PATH.z0, dir: 0 }
-  d -= corners[0]
-  if (d <= corners[1]) return { x: PATH.x1, z: PATH.z0 + d, dir: Math.PI / 2 }
-  d -= corners[1]
-  if (d <= corners[2]) return { x: PATH.x1 - d, z: PATH.z1, dir: Math.PI }
-  d -= corners[2]
-  return { x: PATH.x0, z: PATH.z1 - d, dir: -Math.PI / 2 }
+/** 找一台快见底的料仓，返回补料任务 */
+function pickTask(cooldown: Map<number, number>, now: number): Task | null {
+  let best: Task | null = null
+  let bestRatio = 0.35
+  for (const st of sim.stations) {
+    if ((cooldown.get(st.id) ?? 0) > now) continue
+    for (const slot of binSlots(st.id)) {
+      const count = st.bins[slot.id] ?? 0
+      const ratio = count / binCap(st.id)
+      if (ratio < bestRatio && (sim.stock[slot.id] ?? 0) >= 2) {
+        bestRatio = ratio
+        best = {
+          stationId: st.id,
+          material: slot.id,
+          amount: Math.max(3, Math.round(binCap(st.id) * 0.55)),
+        }
+      }
+    }
+  }
+  return best
 }
 
 export function Agv() {
   const body = agvGeometry()
+  const cargo = agvCargo()
   const wheels = agvWheels()
   const mat = tintedMaterial()
   const group = useRef<THREE.Group>(null)
+  const cargoRef = useRef<THREE.Mesh>(null)
   const wheelRef = useRef<THREE.Mesh>(null)
   const lamp = useRef<THREE.Mesh>(null)
-  const state = useRef({ dist: 0, rot: 0, dwell: 0 })
+  const state = useRef({
+    x: PICKUP.x,
+    z: PICKUP.z,
+    rot: Math.PI,
+    phase: 'idle' as Phase,
+    timer: 0,
+    target: { x: PICKUP.x, z: PICKUP.z },
+    task: null as Task | null,
+    cooldown: new Map<number, number>(),
+    rolled: 0,
+  })
 
   const lampMat = useMemo(
     () => new THREE.MeshStandardMaterial({ color: '#ffb020', emissive: '#ffb020', emissiveIntensity: 1.4, roughness: 0.4 }),
@@ -76,45 +115,97 @@ export function Agv() {
   useEffect(() => {
     return () => {
       body.dispose()
+      cargo.dispose()
       wheels.dispose()
       lampMat.dispose()
     }
-  }, [body, wheels, lampMat])
+  }, [body, cargo, wheels, lampMat])
 
-  useFrame((st, dt) => {
+  useFrame((st, rawDt) => {
     const s = state.current
-    const d = Math.min(dt, 0.1)
+    const dt = Math.min(rawDt, 0.1)
+    const now = st.clock.elapsedTime
+    const running = useFactory.getState().lineState === 'running'
 
-    if (s.dwell > 0) {
-      s.dwell -= d
-    } else {
-      const w = PATH.x1 - PATH.x0
-      const perim = 2 * (w + PATH.z1 - PATH.z0)
-      const p0 = s.dist % perim
-      s.dist += SPEED * d
-      const p1 = s.dist % perim
-      // 跨过站点阈值就停一次（装卸），任何帧率都不会漏判
-      for (const stop of [w, 2 * w + (PATH.z1 - PATH.z0)]) {
-        const crossed = p1 >= p0 ? p0 < stop && p1 >= stop : p0 < stop || p1 >= stop
-        if (crossed) s.dwell = DWELL
+    const moveTo = (tx: number, tz: number) => {
+      const dx = tx - s.x
+      const dz = tz - s.z
+      const d = Math.hypot(dx, dz)
+      if (d < 0.02) return true
+      const step = Math.min(SPEED * dt, d)
+      s.x += (dx / d) * step
+      s.z += (dz / d) * step
+      s.rolled += step
+      const want = Math.atan2(-dz, dx)
+      let diff = want - s.rot
+      while (diff > Math.PI) diff -= Math.PI * 2
+      while (diff < -Math.PI) diff += Math.PI * 2
+      s.rot += diff * Math.min(1, dt * 4)
+      return d - step < 0.03
+    }
+
+    switch (s.phase) {
+      case 'idle': {
+        if (!running) break
+        const task = pickTask(s.cooldown, now)
+        if (!task) break
+        s.task = task
+        s.phase = 'loading'
+        s.timer = LOAD_TIME
+        if (cargoRef.current) cargoRef.current.visible = true
+        break
+      }
+      case 'loading': {
+        s.timer -= dt
+        if (s.timer <= 0 && s.task) {
+          s.phase = 'toStation'
+          s.target = { x: stationX(s.task.stationId - 1) + 0.9, z: LANE_Z }
+        }
+        break
+      }
+      case 'toStation': {
+        if (moveTo(s.target.x, s.target.z)) {
+          s.phase = 'unloading'
+          s.timer = UNLOAD_TIME
+        }
+        break
+      }
+      case 'unloading': {
+        s.timer -= dt
+        if (s.timer <= 0 && s.task) {
+          const res = feed(s.task.stationId, s.task.material, s.task.amount)
+          const store = useFactory.getState()
+          if (res.ok) {
+            thock()
+            store.showToast(`AGV 送达 S${s.task.stationId} · ${MATERIAL_BY_ID[s.task.material].name} +${res.moved}`, 'ok')
+          }
+          s.cooldown.set(s.task.stationId, now + 18)
+          s.task = null
+          s.phase = 'returning'
+          s.target = { x: PICKUP.x, z: PICKUP.z }
+          if (cargoRef.current) cargoRef.current.visible = false
+          store.bump()
+        }
+        break
+      }
+      case 'returning': {
+        if (moveTo(s.target.x, s.target.z)) {
+          s.phase = 'idle'
+        }
+        break
       }
     }
 
-    const pos = pathPoint(s.dist)
+    // 停在站边时稍微侧一点，别压着工位
     if (group.current) {
-      group.current.position.set(pos.x, 0, pos.z)
-      // 车头平滑转向（+X 为车头方向）
-      const target = pos.dir
-      let diff = target - s.rot
-      while (diff > Math.PI) diff -= Math.PI * 2
-      while (diff < -Math.PI) diff += Math.PI * 2
-      s.rot += diff * Math.min(1, d * 6)
+      group.current.position.set(s.x, 0, s.z)
       group.current.rotation.y = s.rot
     }
-    if (wheelRef.current) wheelRef.current.rotation.z = -s.dist / 0.095
+    if (wheelRef.current) wheelRef.current.rotation.z = -s.rolled / 0.095
     if (lamp.current) {
       const m = lamp.current.material as THREE.MeshStandardMaterial
-      m.emissiveIntensity = 0.7 + Math.sin(st.clock.elapsedTime * 6) * 0.6
+      const busy = s.phase !== 'idle'
+      m.emissiveIntensity = busy ? 1.6 + Math.sin(st.clock.elapsedTime * 8) * 0.8 : 0.5 + Math.sin(st.clock.elapsedTime * 3) * 0.3
     }
   })
 
@@ -122,6 +213,7 @@ export function Agv() {
     <group ref={group}>
       <mesh geometry={body} material={mat} castShadow receiveShadow />
       <mesh ref={wheelRef} geometry={wheels} material={mat} />
+      <mesh ref={cargoRef} geometry={cargo} material={mat} castShadow visible={false} />
       <mesh ref={lamp} position={[0, 0.42, 0.28]} material={lampMat}>
         <cylinderGeometry args={[0.05, 0.05, 0.1, 12]} />
       </mesh>

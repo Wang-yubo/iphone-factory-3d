@@ -44,6 +44,10 @@ S1 冲压 ──机壳──▶ S2 主板 ──▶ S3 贴合 ──▶ S4 电�
   ↑每 2.5s 一件        每站从传送带入口抓件 → 加工 → 放回；出口堵住就先不放行
 ```
 
+- **车间**：厂房围护（后墙/端墙/窗带/卷帘门/办公夹层）、9 台 FFU 与风管、
+  配电柜、空压机站与压缩空气管路、老化测试架、物料暂存、叉车、消防器材
+- **动态**：AGV 送料（料仓见底自动出车，装卸各停 2.6/3.0s）、老化架 12 工位轮流点亮、
+  5 名作业人员（2 名走动 + 3 名在岗）、卷帘门透光
 - **工站外观**：40×40 铝型材立柱（方形截面的空心型材，不是平板）+ 上下横梁 + 八个角码 + 顶部走线槽与线束 +
   基座警示带；这堆细节合并成 1 个顶点色几何体，7 个工站共用一份，只多 7 个 draw call
 - **机柜**：冲孔侧板（程序化纹理）、控制屏、三颗按钮、散热格栅、工站色灯带
@@ -72,6 +76,8 @@ src/
   sim/          recipes 配方表 · engine 状态机（纯函数） · feed 投料 API · engine.test 单测 · sim 单例
   store/        useFactory：视图/速度/线状态，以及给 HUD 用的 simVersion
   scene/        Factory 主画布 · Loop 固定步长循环 · stationFrame 合并机架 · Station/StationParts 工站与动画
+                Workshop 厂房与公用工程 · Logistics AGV/老化灯 · People 作业人员
+                FloorDetail 地坪光斑与防静电垫 · geo 顶点色合并工具
                 StationHeads 七站工艺头动画 · Bin 料仓（拖拽目标）· BinPicker 射线拾取
                 Conveyor 传送带 · Products 在制品（圆角件 + 顶面屏）· Scrap 回收箱
                 Shipments 成品飞行 · Hall 车间骨架 · Ground 地面 · Warehouse 原料仓库

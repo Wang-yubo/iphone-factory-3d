@@ -228,6 +228,42 @@ function buildProps() {
     }
   }
 
+  // 叉车（左前暂存区旁）
+  const fx = -15.6
+  const fz = 6.2
+  box(p, 1.15, 0.5, 0.92, fx, 0.42, fz, COL.yellow)
+  box(p, 0.5, 0.62, 0.92, fx - 0.55, 0.55, fz, COL.yellow) // 配重
+  box(p, 0.42, 0.18, 0.5, fx - 0.1, 0.76, fz, COL.dark) // 座椅
+  box(p, 0.36, 0.34, 0.4, fx - 0.06, 0.92, fz, COL.deep) // 靠背
+  for (const dz of [-0.2, 0.2]) {
+    box(p, 0.1, 2.15, 0.1, fx + 0.6, 1.28, fz + dz, COL.dark) // 门架
+  }
+  box(p, 0.08, 0.12, 0.5, fx + 0.6, 2.32, fz, COL.dark)
+  for (const dz of [-0.19, 0.19]) {
+    box(p, 0.95, 0.05, 0.11, fx + 1.05, 0.14, fz + dz, COL.steel) // 货叉
+  }
+  box(p, 0.1, 0.5, 0.42, fx + 0.62, 0.42, fz, COL.dark)
+  // 护顶架
+  for (const dz of [-0.36, 0.36]) {
+    box(p, 0.05, 0.9, 0.05, fx - 0.32, 1.5, fz + dz, COL.dark)
+    box(p, 0.05, 0.9, 0.05, fx + 0.34, 1.5, fz + dz, COL.dark)
+  }
+  box(p, 0.75, 0.05, 0.82, fx, 1.96, fz, COL.dark)
+  // 车轮
+  for (const dx of [-0.42, 0.42]) {
+    for (const dz of [-0.48, 0.48]) {
+      cyl(p, 0.22, 0.16, fx + dx, 0.22, fz + dz, COL.rubber, 'z', 14)
+    }
+  }
+
+  // 后墙安全标识牌
+  for (let i = 0; i < 4; i++) {
+    box(p, 0.7, 0.5, 0.03, -4 + i * 2.6, 3.9, WALL_Z + 0.14, i % 2 === 0 ? COL.red : COL.yellow)
+  }
+  // 挂钟
+  cyl(p, 0.24, 0.06, 3.6, 4.6, WALL_Z + 0.16, COL.alu, 'z', 20)
+  cyl(p, 0.2, 0.02, 3.6, 4.6, WALL_Z + 0.2, COL.deep, 'z', 20)
+
   return merge(p)
 }
 
