@@ -76,7 +76,7 @@ export function ScrapUnits() {
           visible={false}
           material={MATS.glow(C.danger, 0.35)}
         >
-          <boxGeometry args={[0.34, 0.07, 0.19]} />
+          <boxGeometry args={[0.34, 0.03, 0.165]} />
         </mesh>
       ))}
     </group>

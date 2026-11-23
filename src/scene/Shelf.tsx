@@ -60,11 +60,15 @@ export function Shelf() {
         const [lx, ly, lz] = shelfSlotLocal(slot)
         return (
           <group key={slot} position={[lx + 0.04, ly, lz]}>
-            <mesh material={MATS.glow('#eef4f9', 0.12)} castShadow>
-              <boxGeometry args={[0.19, 0.07, 0.33]} />
+            {/* 成品机：背面朝上，能看到摄像头岛 */}
+            <mesh material={MATS.glow('#f2f7fb', 0.1)} castShadow>
+              <boxGeometry args={[0.168, 0.024, 0.34]} />
             </mesh>
-            <mesh position={[0, 0.04, 0]} material={MATS.glow(C.accent, 0.5)}>
-              <boxGeometry args={[0.15, 0.006, 0.27]} />
+            <mesh position={[0.045, 0.014, -0.11]} material={MATS.darkSteel()}>
+              <boxGeometry args={[0.062, 0.008, 0.062]} />
+            </mesh>
+            <mesh position={[0.045, 0.019, -0.11]} material={MATS.glow(C.accent, 0.35)}>
+              <boxGeometry args={[0.048, 0.002, 0.048]} />
             </mesh>
           </group>
         )
