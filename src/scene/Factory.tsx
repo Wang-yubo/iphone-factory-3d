@@ -22,6 +22,7 @@ import { Shipments } from './Shipments'
 import { Shelf } from './Shelf'
 import { Station } from './Station'
 import { Warehouse } from './Warehouse'
+import { Workshop } from './Workshop'
 
 export function Factory() {
   const quality = useFactory((s) => s.quality)
@@ -58,6 +59,7 @@ export function Factory() {
         {!FLAGS.noEnv && <StudioEnvironment />}
         <Lights shadowMapSize={quality === 'high' ? 2048 : 1024} />
         <Hall />
+        <Workshop />
         <Ground />
         <Conveyor />
         <Products />
