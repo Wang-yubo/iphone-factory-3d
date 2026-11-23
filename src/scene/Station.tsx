@@ -3,7 +3,8 @@ import { stationX, STATION_SIZE } from '@/lib/layout'
 import { MATS } from '@/lib/materials'
 import { useFactory } from '@/store/useFactory'
 import type { StationDef } from '@/sim/recipes'
-import { Arm, Beacon, Bin, BinGantry, Cabinet, ToolHead } from './StationParts'
+import { RobotArm } from './RobotArm'
+import { Beacon, Bin, BinGantry, Cabinet, ToolHead } from './StationParts'
 import { stationFrame } from './stationFrame'
 
 const W = STATION_SIZE.w
@@ -53,7 +54,7 @@ export function Station({ def, index }: { def: StationDef; index: number }) {
       </mesh>
 
       <Cabinet accent={def.accent} />
-      <Arm accent={def.accent} stationId={def.id} />
+      <RobotArm accent={def.accent} stationId={def.id} />
       <ToolHead id={def.id} accent={def.accent} />
       <BinGantry />
       <Bin stationId={def.id} accent={def.accent} code={def.code} name={def.name} />
