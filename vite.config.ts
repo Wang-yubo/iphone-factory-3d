@@ -4,6 +4,8 @@ import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
   plugins: [react()],
+  // 相对路径：既能部署在 https://user.github.io/repo/ 子路径，也能部署在域名根目录
+  base: './',
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
