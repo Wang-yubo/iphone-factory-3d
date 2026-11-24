@@ -47,7 +47,9 @@ S1 冲压 ──机壳──▶ S2 主板 ──▶ S3 贴合 ──▶ S4 电�
 - **车间**：厂房围护（后墙/端墙/窗带/卷帘门/办公夹层）、9 台 FFU 与风管、
   配电柜、空压机站与压缩空气管路、老化测试架、物料暂存、叉车、消防器材
 - **动态**：AGV 送料（料仓见底自动出车，装卸各停 2.6/3.0s）、老化架 12 工位轮流点亮、
-  5 名作业人员（2 名走动 + 3 名在岗）、卷帘门透光
+  5 名作业人员（2 名走动 + 3 名在岗）、2 名保安（1 名巡逻 + 1 名后门站岗）、卷帘门透光
+- **保安模型**：`public/models/guard.glb`，由 `scripts/blender_guard.py` 生成
+  （1.743m，分件导出，legL/legR/armL/armR 的原点就在关节上，可直接旋转做走路）
 - **工站外观**：40×40 铝型材立柱（方形截面的空心型材，不是平板）+ 上下横梁 + 八个角码 + 顶部走线槽与线束 +
   基座警示带；这堆细节合并成 1 个顶点色几何体，7 个工站共用一份，只多 7 个 draw call
 - **机柜**：冲孔侧板（程序化纹理）、控制屏、三颗按钮、散热格栅、工站色灯带
@@ -98,6 +100,15 @@ src/
 5. **材质缓存**：`lib/materials.ts` 按参数复用 `MeshStandardMaterial`。
 6. **不要用 `backdrop-filter` 做大面积 HUD 背景**：它会让合成器逐帧重算模糊，
    实测把 R3F 渲染循环从 16fps 压到 0.4fps。HUD 一律半透明实色 + 边框。
+
+## 重新生成模型
+
+```bash
+# 手机（1:1，150×73×8.25mm）
+/Applications/Blender.app/Contents/MacOS/Blender --background --python scripts/blender_phone.py
+# 保安（1.743m，分件带关节原点）
+/Applications/Blender.app/Contents/MacOS/Blender --background --python scripts/blender_guard.py
+```
 
 ## 重新生成手机模型
 

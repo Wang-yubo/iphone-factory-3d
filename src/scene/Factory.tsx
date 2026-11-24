@@ -14,6 +14,7 @@ import { Conveyor } from './Conveyor'
 import { StudioEnvironment } from './Environment'
 import { Effects } from './Effects'
 import { Ground } from './Ground'
+import { Guards } from './Guard'
 import { Hall } from './Hall'
 import { Lights } from './Lights'
 import { Logistics } from './Logistics'
@@ -65,6 +66,7 @@ export function Factory() {
         <Workshop />
         <FloorDetail />
         <People />
+        <Guards />
         <Logistics />
         <Ground />
         <Conveyor />
