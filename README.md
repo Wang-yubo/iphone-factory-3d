@@ -48,8 +48,11 @@ S1 冲压 ──机壳──▶ S2 主板 ──▶ S3 贴合 ──▶ S4 电�
   配电柜、空压机站与压缩空气管路、老化测试架、物料暂存、叉车、消防器材
 - **动态**：AGV 送料（料仓见底自动出车，装卸各停 2.6/3.0s）、老化架 12 工位轮流点亮、
   5 名作业人员（2 名走动 + 3 名在岗）、2 名保安（1 名巡逻 + 1 名后门站岗）、卷帘门透光
-- **保安模型**：`public/models/guard.glb`，由 `scripts/blender_guard.py` 生成
-  （1.743m，分件导出，legL/legR/armL/armR 的原点就在关节上，可直接旋转做走路）
+- **安保角色**：`public/models/security.glb`（2.1MB），带 Mixamo 骨骼（49 骨 / 含手指）与
+  Idle / Walk / Run 四段动画的真实蒙皮角色；用 `SkeletonUtils.clone` 保证每个实例独立骨骼，
+  `AnimationMixer` 驱动走路。**该模型来自 three.js 官方示例资源，仅供演示，商用前请自行核实授权**
+- **程序化备用**：`public/models/guard.glb`（1.743m 便服保安）由 `scripts/blender_guard.py` 生成，
+  分件导出、关节原点在髋/肩，可纯代码驱动步态；当前未启用，需要时在 `Guard.tsx` 里换回
 - **工站外观**：40×40 铝型材立柱（方形截面的空心型材，不是平板）+ 上下横梁 + 八个角码 + 顶部走线槽与线束 +
   基座警示带；这堆细节合并成 1 个顶点色几何体，7 个工站共用一份，只多 7 个 draw call
 - **机柜**：冲孔侧板（程序化纹理）、控制屏、三颗按钮、散热格栅、工站色灯带
@@ -106,7 +109,7 @@ src/
 ```bash
 # 手机（1:1，150×73×8.25mm）
 /Applications/Blender.app/Contents/MacOS/Blender --background --python scripts/blender_phone.py
-# 保安（1.743m，分件带关节原点）
+# 便服保安（1.743m，分件带关节原点，当前作为备用）
 /Applications/Blender.app/Contents/MacOS/Blender --background --python scripts/blender_guard.py
 ```
 

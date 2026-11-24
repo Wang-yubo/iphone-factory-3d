@@ -2,48 +2,58 @@ import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
+import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.js'
 
 /**
- * 保安（Blender 程序化建模，见 scripts/blender_guard.py）。
- * 模型是分件导出的：legL/legR/armL/armR 的原点就在髋/肩关节上，
- * 所以直接按名字取节点旋转就能走路。
+ * 安保人员：外部绑定角色（Mixamo 骨骼 + Idle/Walk 动作），
+ * 用 SkeletonUtils 克隆才能让每个实例有独立的骨骼状态。
+ *
+ * 说明：模型来自 three.js 示例资源（Mixamo 系），是"装甲特勤"形象，
+ * 不是便服保安。程序化的便服保安脚本仍保留在 scripts/blender_guard.py。
  */
 
-const GUARD = './models/guard.glb'
-useGLTF.preload(GUARD)
+const URL = './models/security.glb'
+useGLTF.preload(URL)
 
-interface Rig {
-  root: THREE.Object3D
-  legL: THREE.Object3D | null
-  legR: THREE.Object3D | null
-  armL: THREE.Object3D | null
-  armR: THREE.Object3D | null
-}
+/** Mixamo 角色在 glTF 里正面朝 -Z，本项目约定正面朝 +Z */
+const MODEL_FACING = Math.PI
 
-function buildRig(scene: THREE.Object3D): Rig {
-  const root = scene.clone(true)
-  root.traverse((o) => {
-    const m = o as THREE.Mesh
-    if (m.isMesh) {
-      m.castShadow = true
-      m.receiveShadow = true
-    }
-  })
-  return {
-    root,
-    legL: root.getObjectByName('legL') ?? null,
-    legR: root.getObjectByName('legR') ?? null,
-    armL: root.getObjectByName('armL') ?? null,
-    armR: root.getObjectByName('armR') ?? null,
+function useActor() {
+  const { scene, animations } = useGLTF(URL) as unknown as {
+    scene: THREE.Object3D
+    animations: THREE.AnimationClip[]
   }
+  const actor = useMemo(() => {
+    const root = skeletonClone(scene)
+    root.traverse((o) => {
+      const m = o as THREE.Mesh
+      if (m.isMesh) {
+        m.castShadow = true
+        m.receiveShadow = true
+        m.frustumCulled = false
+      }
+    })
+    const mixer = new THREE.AnimationMixer(root)
+    const clips = Object.fromEntries(animations.map((c) => [c.name, c]))
+    return { root, mixer, clips }
+  }, [scene, animations])
+
+  useEffect(() => {
+    return () => {
+      actor.mixer.stopAllAction()
+      actor.root.parent?.remove(actor.root)
+    }
+  }, [actor])
+
+  return actor
 }
 
-/** 巡逻：沿通道往返，摆腿摆臂 */
+/** 巡逻：沿通道往返，播放 Walk */
 export function PatrolGuard({
   from,
   to,
   z,
-  speed = 0.55,
+  speed = 0.85,
   offset = 0,
 }: {
   from: number
@@ -52,16 +62,19 @@ export function PatrolGuard({
   speed?: number
   offset?: number
 }) {
-  const { scene } = useGLTF(GUARD)
-  const rig = useMemo(() => buildRig(scene), [scene])
+  const { root, mixer, clips } = useActor()
   const group = useRef<THREE.Group>(null)
   const phase = useRef(offset)
 
   useEffect(() => {
+    const walk = clips.Walk ?? clips.Idle
+    if (!walk) return
+    const action = mixer.clipAction(walk)
+    action.play()
     return () => {
-      rig.root.parent?.remove(rig.root)
+      action.stop()
     }
-  }, [rig])
+  }, [mixer, clips])
 
   useFrame((_, dt) => {
     const span = to - from
@@ -70,29 +83,20 @@ export function PatrolGuard({
     const forward = cycle < span
     const x = from + (forward ? cycle : span * 2 - cycle)
 
-    if (group.current) {
-      group.current.position.x = x
-    }
-    rig.root.rotation.y = forward ? Math.PI / 2 : -Math.PI / 2
-    // 走路节奏
-    const t = phase.current * 7.5
-    const swing = Math.sin(t) * 0.5
-    if (rig.legL) rig.legL.rotation.x = swing
-    if (rig.legR) rig.legR.rotation.x = -swing
-    if (rig.armL) rig.armL.rotation.x = -swing * 0.55
-    if (rig.armR) rig.armR.rotation.x = swing * 0.55
-    rig.root.position.y = Math.abs(Math.cos(t)) * 0.018
-    rig.root.rotation.z = Math.sin(t) * 0.012
+    if (group.current) group.current.position.x = x
+    // 朝向：+X 行进时转 -90°
+    root.rotation.y = MODEL_FACING + (forward ? -Math.PI / 2 : Math.PI / 2)
+    mixer.update(dt)
   })
 
   return (
     <group ref={group} position={[from, 0, z]}>
-      <primitive object={rig.root} />
+      <primitive object={root} />
     </group>
   )
 }
 
-/** 站岗：微微转动身体、偶尔换重心 */
+/** 站岗：播放 Idle，身体随时间轻微转向 */
 export function StandingGuard({
   x,
   z,
@@ -104,31 +108,31 @@ export function StandingGuard({
   facing?: number
   phase?: number
 }) {
-  const { scene } = useGLTF(GUARD)
-  const rig = useMemo(() => buildRig(scene), [scene])
+  const { root, mixer, clips } = useActor()
   const group = useRef<THREE.Group>(null)
 
   useEffect(() => {
+    const idle = clips.Idle ?? clips.Walk
+    if (!idle) return
+    const action = mixer.clipAction(idle)
+    action.play()
     return () => {
-      rig.root.parent?.remove(rig.root)
+      action.stop()
     }
-  }, [rig])
+  }, [mixer, clips])
 
-  useFrame((st) => {
+  useFrame((st, dt) => {
     const t = st.clock.elapsedTime + phase
     if (group.current) {
-      group.current.position.set(x, Math.sin(t * 0.9) * 0.004, z)
-      group.current.rotation.y = facing + Math.sin(t * 0.22) * 0.16
+      group.current.rotation.y = facing + Math.sin(t * 0.22) * 0.14
     }
-    // 换重心的微动作
-    rig.root.rotation.z = Math.sin(t * 0.55) * 0.012
-    if (rig.armL) rig.armL.rotation.x = Math.sin(t * 0.4) * 0.03
-    if (rig.armR) rig.armR.rotation.x = -Math.sin(t * 0.4 + 1) * 0.03
+    root.rotation.y = MODEL_FACING
+    mixer.update(dt)
   })
 
   return (
     <group ref={group} position={[x, 0, z]} rotation={[0, facing, 0]}>
-      <primitive object={rig.root} />
+      <primitive object={root} />
     </group>
   )
 }
@@ -136,9 +140,7 @@ export function StandingGuard({
 export function Guards() {
   return (
     <group>
-      {/* 通道里的巡逻保安 */}
-      <PatrolGuard from={-10} to={9.5} z={6.15} speed={0.52} offset={6} />
-      {/* 后门口站岗 */}
+      <PatrolGuard from={-10} to={9.5} z={6.15} speed={0.85} offset={6} />
       <StandingGuard x={-5.6} z={-7.4} facing={0} phase={2.1} />
     </group>
   )
