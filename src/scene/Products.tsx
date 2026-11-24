@@ -1,3 +1,4 @@
+import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
@@ -9,6 +10,19 @@ import { useFactory } from '@/store/useFactory'
 import type { ItemId } from '@/sim/recipes'
 
 const POOL = 30
+
+/**
+ * 成品手机用 Blender 建的 1:1 模型（scripts/blender_phone.py 生成）。
+ * 资产本身是真实尺寸（150×73×8.25mm），进场时按 2.35 倍放大，
+ * 与场景里"英雄尺度"的在制品保持一致。
+ */
+const PHONE_MODEL = './models/iphone18pro.glb'
+const PHONE_SCALE = 2.35
+/** 模型最低点在摄像头凸起上，抬这么高才能坐在带面 */
+const PHONE_LIFT = 0.0075 * PHONE_SCALE
+const GLB_ITEMS = new Set(['phoneBody', 'phoneOk', 'phone'])
+
+useGLTF.preload(PHONE_MODEL)
 
 /** 手机宽高比接近 2:1，厚度只有宽度的 ~12%——这三条决定了它像不像手机 */
 interface Form {
@@ -240,6 +254,11 @@ export function Products() {
   const ringRef = useRef<THREE.Mesh>(null)
 
   const assets = useMemo(buildAssets, [])
+  const { scene: phoneScene } = useGLTF(PHONE_MODEL)
+  const phoneClones = useMemo(
+    () => Array.from({ length: POOL }, () => phoneScene.clone(true)),
+    [phoneScene],
+  )
 
   useEffect(() => {
     return () => {
@@ -284,6 +303,17 @@ export function Products() {
       const prevLift = lifts.current[i] ?? 0
       const lift = prevLift + (targetLift - prevLift) * Math.min(1, dt * 11)
       lifts.current[i] = lift
+
+      const useModel = GLB_ITEMS.has(p.item)
+      const clone = phoneClones[i]
+      if (clone) {
+        clone.visible = useModel
+        if (useModel) {
+          clone.scale.setScalar(PHONE_SCALE * (p.model === 'air' ? 0.94 : 1))
+          clone.position.y = lift + PHONE_LIFT
+        }
+      }
+
       const bob = p.mode === 'processing' ? Math.sin(t * 12) * 0.004 : 0
       const bodyY = lift + asset.halfY
 
@@ -292,11 +322,14 @@ export function Products() {
       g.scale.setScalar(scale)
       g.rotation.y = p.mode === 'processing' ? Math.sin(t * 2.2 + p.id) * 0.12 : 0
 
-      if (body) body.position.y = bodyY
+      if (body) {
+        body.position.y = bodyY
+        body.visible = !useModel
+      }
 
       if (screen) {
         const on = Boolean(asset.screenGeo && asset.screenMat)
-        screen.visible = on
+        screen.visible = on && !useModel
         if (on) {
           if (screen.userData.key !== p.item) {
             screen.userData.key = p.item
@@ -317,7 +350,7 @@ export function Products() {
 
       if (notch) {
         const on = Boolean(asset.notchGeo)
-        notch.visible = on
+        notch.visible = on && !useModel
         if (on) {
           if (notch.userData.key !== p.item) {
             notch.userData.key = p.item
@@ -375,6 +408,7 @@ export function Products() {
             material={NOTCH_MAT}
             visible={false}
           />
+          <primitive object={phoneClones[i]} visible={false} />
         </group>
       ))}
     </group>

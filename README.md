@@ -51,6 +51,9 @@ S1 冲压 ──机壳──▶ S2 主板 ──▶ S3 贴合 ──▶ S4 电�
 - **工站外观**：40×40 铝型材立柱（方形截面的空心型材，不是平板）+ 上下横梁 + 八个角码 + 顶部走线槽与线束 +
   基座警示带；这堆细节合并成 1 个顶点色几何体，7 个工站共用一份，只多 7 个 draw call
 - **机柜**：冲孔侧板（程序化纹理）、控制屏、三颗按钮、散热格栅、工站色灯带
+- **成品模型**：`public/models/iphone18pro.glb`，由 `scripts/blender_phone.py` 在 Blender 5.3
+  无头模式下程序化生成（1:1 真实尺寸 150×73×8.25mm，9004 面），进场按 2.35× 放大匹配场景尺度；
+  S5 之后的在制品、以及完成品都换用它
 - **在制品外观**：铝锭 → 机壳（带内腔）→ 主板（金色芯片位）→ 屏装机壳（亮屏）→ 电池总成 → 半成品 → 成品，
   全部用圆角盒 + 顶面屏幕表现，俯视角度一眼能看出做到第几站
 - **机型**：`iPhone 17 Pro`（摄像头 3 件/台，基准节拍）与 `iPhone 17 Air`（2 件/台、节拍 ×0.86、报酬 ×0.9）
@@ -95,6 +98,14 @@ src/
 5. **材质缓存**：`lib/materials.ts` 按参数复用 `MeshStandardMaterial`。
 6. **不要用 `backdrop-filter` 做大面积 HUD 背景**：它会让合成器逐帧重算模糊，
    实测把 R3F 渲染循环从 16fps 压到 0.4fps。HUD 一律半透明实色 + 边框。
+
+## 重新生成手机模型
+
+```bash
+/Applications/Blender.app/Contents/MacOS/Blender --background --python scripts/blender_phone.py
+```
+
+改尺寸/材质直接改脚本顶部的常量与 `mat()` 调用，导出会覆盖 `public/models/iphone18pro.glb`。
 
 ## 调试
 
