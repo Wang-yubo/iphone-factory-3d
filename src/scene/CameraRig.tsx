@@ -37,6 +37,7 @@ export function CameraRig() {
   const view = useFactory((s) => s.view)
   const setView = useFactory((s) => s.setView)
   const focusId = useFactory((s) => s.focusProductId)
+  const focusActor = useFactory((s) => s.focusActor)
   const lastFollow = useRef<THREE.Vector3 | null>(null)
   const zoomT = useRef(1)
   const prevFocus = useRef<number | null>(null)

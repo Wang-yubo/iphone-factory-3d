@@ -54,6 +54,7 @@ export function Factory() {
         const st = useFactory.getState()
         if (st.focusStationId !== null) st.focusStation(null)
         if (st.focusProductId !== null) st.focusProduct(null)
+        if (st.focusActor !== null) st.clearFocusActor()
       }}
     >
       <color attach="background" args={[C.bg]} />

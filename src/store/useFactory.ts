@@ -71,6 +71,8 @@ interface FactoryStore {
   guideStep: number
   /** 正在跟随的在制品 */
   focusProductId: number | null
+  /** 被点选的人物（镜头聚焦点） */
+  focusActor: { x: number; z: number; label: string } | null
 
   start: () => void
   togglePause: () => void
@@ -89,6 +91,8 @@ interface FactoryStore {
   cycleQuality: () => void
   cycleDifficulty: () => void
   focusProduct: (id: number | null) => void
+  focusActorAt: (x: number, z: number, label: string) => void
+  clearFocusActor: () => void
   setQuality: (q: Quality) => void
   advanceGuide: (step: number) => void
   skipGuide: () => void
@@ -112,6 +116,7 @@ export const useFactory = create<FactoryStore>((set, get) => ({
   difficulty: readDifficulty(),
   guideStep: FLAGS.guide ? 0 : readGuideDone() ? 3 : 0,
   focusProductId: null,
+  focusActor: null,
 
   start: () => set((s) => (s.lineState === 'idle' ? { lineState: 'running' } : s)),
   togglePause: () =>
@@ -140,6 +145,7 @@ export const useFactory = create<FactoryStore>((set, get) => ({
       toast: null,
       guideStep: readGuideDone() ? 3 : 0,
       focusProductId: null,
+      focusActor: null,
     })
   },
 
@@ -185,6 +191,8 @@ export const useFactory = create<FactoryStore>((set, get) => ({
       return { difficulty: next }
     }),
   focusProduct: (id) => set({ focusProductId: id }),
+  focusActorAt: (x, z, label) => set({ focusActor: { x, z, label } }),
+  clearFocusActor: () => set({ focusActor: null }),
   advanceGuide: (step) => set((s) => (s.guideStep >= step ? s : { guideStep: step })),
   skipGuide: () =>
     set(() => {

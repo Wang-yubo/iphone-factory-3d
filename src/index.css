@@ -1442,3 +1442,59 @@ kbd {
   color: #e4f6ff;
   border-color: rgba(47, 184, 255, 0.65);
 }
+
+/* 人物聚焦卡片 */
+.actor-card {
+  position: absolute;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px 8px 12px;
+  background: rgba(10, 16, 22, 0.94);
+  border: 1px solid rgba(47, 184, 255, 0.4);
+  border-radius: 999px;
+  box-shadow: 0 0 26px -10px var(--accent), 0 14px 34px rgba(0, 0, 0, 0.5);
+  animation: fade 0.2s ease;
+}
+
+.actor-card__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+.actor-card__label {
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  color: #dfeffc;
+  white-space: nowrap;
+}
+
+.actor-card__close {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.actor-card__close:hover {
+  color: #dff2ff;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.82); }
+}

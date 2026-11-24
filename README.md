@@ -51,6 +51,9 @@ S1 冲压 ──机壳──▶ S2 主板 ──▶ S3 贴合 ──▶ S4 电�
 - **安保角色**：`public/models/security.glb`（2.1MB），带 Mixamo 骨骼（49 骨 / 含手指）与
   Idle / Walk / Run 四段动画的真实蒙皮角色；用 `SkeletonUtils.clone` 保证每个实例独立骨骼，
   `AnimationMixer` 驱动走路。**该模型来自 three.js 官方示例资源，仅供演示，商用前请自行核实授权**
+- **机器人班组**：`public/models/robot.glb`（529KB）由 `scripts/blender_robot.py` 生成，
+  白色圆润外壳 + 球关节 + 面部细节（眼睛/嘴部灯条/耳部指示灯/后脑散热缝），
+  1.613m，分件导出（legL/legR/armL/armR/head 原点在关节），4 台在场景中值守与行走
 - **程序化备用**：`public/models/guard.glb`（1.743m 便服保安）由 `scripts/blender_guard.py` 生成，
   分件导出、关节原点在髋/肩，可纯代码驱动步态；当前未启用，需要时在 `Guard.tsx` 里换回
 - **工站外观**：40×40 铝型材立柱（方形截面的空心型材，不是平板）+ 上下横梁 + 八个角码 + 顶部走线槽与线束 +

@@ -1,4 +1,5 @@
 import { useGLTF } from '@react-three/drei'
+import { useFactory } from '@/store/useFactory'
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
@@ -15,7 +16,11 @@ import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.j
 const URL = './models/security.glb'
 useGLTF.preload(URL)
 
-/** Mixamo 角色在 glTF 里正面朝 -Z，本项目约定正面朝 +Z */
+/**
+ * 角色在 glTF 里正面朝 -Z（由面罩的世界坐标验算得出），
+ * 所以要转到本项目约定（正面朝 +Z）需要额外转 180°。
+ * 注意：巡逻时目标朝向是 ±X，符号不能写反，否则会倒着走。
+ */
 const MODEL_FACING = Math.PI
 
 function useActor() {
@@ -84,13 +89,23 @@ export function PatrolGuard({
     const x = from + (forward ? cycle : span * 2 - cycle)
 
     if (group.current) group.current.position.x = x
-    // 朝向：+X 行进时转 -90°
-    root.rotation.y = MODEL_FACING + (forward ? -Math.PI / 2 : Math.PI / 2)
+    // 朝向：正面（-Z）先转到 +Z，再按行进方向转 ±90°
+    root.rotation.y = MODEL_FACING + (forward ? Math.PI / 2 : -Math.PI / 2)
     mixer.update(dt)
   })
 
   return (
-    <group ref={group} position={[from, 0, z]}>
+    <group
+      ref={group}
+      position={[from, 0, z]}
+      onClick={(e) => {
+        e.stopPropagation()
+        const g = group.current
+        if (g) useFactory.getState().focusActorAt(g.position.x, z, '安保 · 巡逻岗')
+      }}
+      onPointerOver={() => (document.body.style.cursor = 'pointer')}
+      onPointerOut={() => (document.body.style.cursor = 'auto')}
+    >
       <primitive object={root} />
     </group>
   )
@@ -131,7 +146,17 @@ export function StandingGuard({
   })
 
   return (
-    <group ref={group} position={[x, 0, z]} rotation={[0, facing, 0]}>
+    <group
+      ref={group}
+      position={[x, 0, z]}
+      rotation={[0, facing, 0]}
+      onClick={(e) => {
+        e.stopPropagation()
+        useFactory.getState().focusActorAt(x, z, '安保 · 后门岗')
+      }}
+      onPointerOver={() => (document.body.style.cursor = 'pointer')}
+      onPointerOut={() => (document.body.style.cursor = 'auto')}
+    >
       <primitive object={root} />
     </group>
   )

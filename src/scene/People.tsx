@@ -1,188 +1,180 @@
+import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { COL, box, cyl, merge, tint, tintedMaterial } from './geo'
+import { useFactory } from '@/store/useFactory'
 
 /**
- * 车间里的作业人员：两名走动的巡检/搬运工，两名在工位前的操作工。
- * 剪影级别的低模（圆头 + 方身），靠姿态和动作传达"有人在干活"。
+ * 具身智能机器人（Blender 参数化建模，见 scripts/blender_robot.py）。
+ * 分件导出，legL/legR/armL/armR/head 的原点就在关节上，
+ * 所以按节点名旋转即可做出走路的摆腿摆臂和转头。
  */
 
-const SKIN = new THREE.Color('#d9b79a')
-const SHIRT = new THREE.Color('#9fb0c2')
-const SHIRT_DARK = new THREE.Color('#7f90a2')
-const PANTS = new THREE.Color('#39434f')
-const SHOE = new THREE.Color('#161a1f')
-const HAIR = new THREE.Color('#2a2320')
-const CAP = new THREE.Color('#5d6b7a')
+const URL = './models/robot.glb'
+useGLTF.preload(URL)
 
-/** 躯干 + 头 + 手臂 + 鞋（合并成一个 mesh） */
-function bodyGeometry(withCap: boolean) {
-  const p: THREE.BufferGeometry[] = []
-  // 胯 + 躯干
-  box(p, 0.3, 0.16, 0.2, 0, 0.86, 0, PANTS)
-  box(p, 0.34, 0.5, 0.22, 0, 1.16, 0, SHIRT)
-  // 胸前工牌
-  box(p, 0.08, 0.1, 0.01, 0.02, 1.22, 0.115, COL.aluDark)
-  // 肩部斜线
-  box(p, 0.36, 0.04, 0.24, 0, 1.4, 0, SHIRT_DARK)
-  // 手臂
-  for (const sx of [-1, 1]) {
-    box(p, 0.085, 0.4, 0.1, sx * 0.215, 1.15, 0, SHIRT_DARK)
-    box(p, 0.075, 0.12, 0.09, sx * 0.215, 0.92, 0, SKIN)
-  }
-  // 脖子 + 头
-  cyl(p, 0.043, 0.07, 0, 1.44, 0, SKIN, 'y', 10)
-  const head = new THREE.SphereGeometry(0.098, 14, 12)
-  head.translate(0, 1.53, 0)
-  p.push(tint(head, SKIN))
-  if (withCap) {
-    const cap = new THREE.SphereGeometry(0.104, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.5)
-    cap.translate(0, 1.54, 0)
-    p.push(tint(cap, CAP))
-    box(p, 0.16, 0.02, 0.09, 0, 1.55, 0.11, CAP)
-  } else {
-    const hair = new THREE.SphereGeometry(0.101, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.45)
-    hair.translate(0, 1.545, -0.005)
-    p.push(tint(hair, HAIR))
-  }
-  return merge(p)
+/** 模型脚底略高于地面 0.025m，落到地面需要下移 */
+const FOOT_OFFSET = -0.025
+
+interface Rig {
+  root: THREE.Object3D
+  legL: THREE.Object3D | null
+  legR: THREE.Object3D | null
+  armL: THREE.Object3D | null
+  armR: THREE.Object3D | null
+  head: THREE.Object3D | null
 }
 
-/** 单条腿（以髋为原点向下） */
-function legGeometry() {
-  const p: THREE.BufferGeometry[] = []
-  box(p, 0.13, 0.76, 0.15, 0, -0.38, 0, PANTS)
-  box(p, 0.115, 0.075, 0.24, 0, -0.79, 0.045, SHOE)
-  return merge(p)
-}
+function useRobot() {
+  const { scene } = useGLTF(URL) as unknown as { scene: THREE.Object3D }
+  const rig = useMemo<Rig>(() => {
+    const root = scene.clone(true)
+    root.traverse((o) => {
+      const m = o as THREE.Mesh
+      if (m.isMesh) {
+        m.castShadow = true
+        m.receiveShadow = true
+      }
+    })
+    return {
+      root,
+      legL: root.getObjectByName('legL') ?? null,
+      legR: root.getObjectByName('legR') ?? null,
+      armL: root.getObjectByName('armL') ?? null,
+      armR: root.getObjectByName('armR') ?? null,
+      head: root.getObjectByName('head') ?? null,
+    }
+  }, [scene])
 
-function useWorkerAssets(withCap: boolean) {
-  const body = useMemo(() => bodyGeometry(withCap), [withCap])
-  const leg = useMemo(legGeometry, [])
-  const mat = tintedMaterial()
   useEffect(() => {
     return () => {
-      body.dispose()
-      leg.dispose()
+      rig.root.parent?.remove(rig.root)
     }
-  }, [body, leg])
-  return { body, leg, mat }
+  }, [rig])
+
+  return rig
 }
 
-interface WalkerProps {
+/** 行走的机器人 */
+export function RobotWalker({
+  from,
+  to,
+  z,
+  speed = 0.75,
+  offset = 0,
+  label = '协作机器人',
+}: {
   from: number
   to: number
   z: number
-  speed: number
-  offset: number
-  cap?: boolean
-}
-
-/** 沿通道往返走动的人 */
-export function Walker({ from, to, z, speed, offset, cap = true }: WalkerProps) {
-  const { body, leg, mat } = useWorkerAssets(cap)
+  speed?: number
+  offset?: number
+  label?: string
+}) {
+  const rig = useRobot()
   const group = useRef<THREE.Group>(null)
-  const hipL = useRef<THREE.Group>(null)
-  const hipR = useRef<THREE.Group>(null)
-  const armL = useRef<THREE.Group>(null)
-  const armR = useRef<THREE.Group>(null)
+  const phase = useRef(offset)
 
-  useFrame((st) => {
-    const t = st.clock.elapsedTime * speed + offset
+  useFrame((_, dt) => {
     const span = to - from
-    const cycle = ((t % (span * 2)) + span * 2) % (span * 2)
+    phase.current += dt * speed
+    const cycle = ((phase.current % (span * 2)) + span * 2) % (span * 2)
     const forward = cycle < span
     const x = from + (forward ? cycle : span * 2 - cycle)
 
     if (group.current) {
-      group.current.position.set(x, Math.abs(Math.cos(t * 6)) * 0.012, z)
-      // 模型正面朝 +Z，转向行走方向
+      group.current.position.set(x, FOOT_OFFSET + Math.abs(Math.cos(phase.current * 7)) * 0.012, z)
       group.current.rotation.y = forward ? Math.PI / 2 : -Math.PI / 2
     }
-    const swing = Math.sin(t * 6) * 0.45
-    if (hipL.current) hipL.current.rotation.x = swing
-    if (hipR.current) hipR.current.rotation.x = -swing
-    if (armL.current) armL.current.rotation.x = -swing * 0.7
-    if (armR.current) armR.current.rotation.x = swing * 0.7
+
+    const t = phase.current * 7
+    const swing = Math.sin(t) * 0.42
+    if (rig.legL) rig.legL.rotation.x = swing
+    if (rig.legR) rig.legR.rotation.x = -swing
+    if (rig.armL) rig.armL.rotation.x = -swing * 0.62
+    if (rig.armR) rig.armR.rotation.x = swing * 0.62
+    if (rig.head) {
+      rig.head.rotation.y = Math.sin(t * 0.35) * 0.12
+      rig.head.rotation.x = -0.04 + Math.sin(t * 0.5) * 0.02
+    }
   })
 
   return (
-    <group ref={group}>
-      <mesh geometry={body} material={mat} castShadow />
-      <group ref={hipL} position={[-0.085, 0.78, 0]}>
-        <mesh geometry={leg} material={mat} castShadow />
-      </group>
-      <group ref={hipR} position={[0.085, 0.78, 0]}>
-        <mesh geometry={leg} material={mat} castShadow />
-      </group>
-      {/* 手臂用独立的小 mesh 做摆动 */}
-      <group ref={armL} position={[-0.215, 1.35, 0]}>
-        <mesh material={mat} castShadow position={[0, -0.2, 0]}>
-          <boxGeometry args={[0.085, 0.4, 0.1]} />
-        </mesh>
-      </group>
-      <group ref={armR} position={[0.215, 1.35, 0]}>
-        <mesh material={mat} castShadow position={[0, -0.2, 0]}>
-          <boxGeometry args={[0.085, 0.4, 0.1]} />
-        </mesh>
-      </group>
+    <group
+      ref={group}
+      position={[from, FOOT_OFFSET, z]}
+      onClick={(e) => {
+        e.stopPropagation()
+        const g = group.current
+        if (g) useFactory.getState().focusActorAt(g.position.x, z, label)
+      }}
+      onPointerOver={() => (document.body.style.cursor = 'pointer')}
+      onPointerOut={() => (document.body.style.cursor = 'auto')}
+    >
+      <primitive object={rig.root} />
     </group>
   )
 }
 
-/** 站在工位前操作的人（轻微侧身、偶尔点头） */
-export function StandingWorker({
+/** 在工位旁值守的机器人 */
+export function RobotStanding({
   x,
   z,
-  facing = Math.PI,
-  cap = false,
+  facing = 0,
   phase = 0,
+  label = '协作机器人',
 }: {
   x: number
   z: number
   facing?: number
-  cap?: boolean
   phase?: number
+  label?: string
 }) {
-  const { body, leg, mat } = useWorkerAssets(cap)
+  const rig = useRobot()
   const group = useRef<THREE.Group>(null)
-  const torso = useRef<THREE.Group>(null)
 
   useFrame((st) => {
     const t = st.clock.elapsedTime + phase
     if (group.current) {
-      group.current.position.set(x, 0, z)
-      group.current.rotation.y = facing + Math.sin(t * 0.4) * 0.12
+      group.current.position.set(x, FOOT_OFFSET + Math.sin(t * 1.4) * 0.006, z)
+      group.current.rotation.y = facing + Math.sin(t * 0.3) * 0.1
     }
-    if (torso.current) {
-      torso.current.rotation.x = Math.sin(t * 1.3) * 0.035 + 0.04
+    // 待机：头部缓慢扫视，手臂微动
+    if (rig.head) {
+      rig.head.rotation.y = Math.sin(t * 0.5) * 0.4
+      rig.head.rotation.x = Math.sin(t * 0.33) * 0.08
     }
+    if (rig.armL) rig.armL.rotation.x = Math.sin(t * 0.8) * 0.06 - 0.05
+    if (rig.armR) rig.armR.rotation.x = Math.sin(t * 0.8 + 1.4) * 0.06 - 0.05
+    if (rig.legL) rig.legL.rotation.x = 0
+    if (rig.legR) rig.legR.rotation.x = 0
   })
 
   return (
-    <group ref={group}>
-      <group ref={torso}>
-        <mesh geometry={body} material={mat} castShadow />
-      </group>
-      <mesh geometry={leg} material={mat} castShadow position={[-0.085, 0.78, 0]} />
-      <mesh geometry={leg} material={mat} castShadow position={[0.085, 0.78, 0]} />
+    <group
+      ref={group}
+      position={[x, FOOT_OFFSET, z]}
+      rotation={[0, facing, 0]}
+      onClick={(e) => {
+        e.stopPropagation()
+        useFactory.getState().focusActorAt(x, z, label)
+      }}
+      onPointerOver={() => (document.body.style.cursor = 'pointer')}
+      onPointerOut={() => (document.body.style.cursor = 'auto')}
+    >
+      <primitive object={rig.root} />
     </group>
   )
 }
 
-/** 车间人员布置 */
+/** 车间里的机器人班组 */
 export function People() {
   return (
     <group>
-      {/* 通道里的两名走动人员，错开相位 */}
-      <Walker from={-10.5} to={8.5} z={4.1} speed={0.62} offset={0} cap />
-      <Walker from={-6} to={10} z={3.55} speed={0.48} offset={22} cap={false} />
-      {/* 工位前的操作工：S3 与 S6 */}
-      <StandingWorker x={-3 + 1.25} z={1.95} facing={Math.PI * 0.82} phase={1.2} />
-      <StandingWorker x={6 + 1.25} z={1.95} facing={Math.PI * 0.9} phase={3.4} cap />
-      {/* 工作台前的配料员 */}
-      <StandingWorker x={-11.6} z={4.9} facing={Math.PI} phase={5.1} cap />
+      <RobotWalker from={-10.5} to={8.5} z={4.1} speed={0.72} offset={0} label="协作机器人 · AGV-01" />
+      <RobotWalker from={-6} to={10} z={3.5} speed={0.55} offset={22} label="协作机器人 · AGV-02" />
+      <RobotStanding x={-3 + 1.3} z={1.95} facing={Math.PI * 0.86} phase={1.2} label="协作机器人 · S3 值守" />
+      <RobotStanding x={6 + 1.3} z={1.95} facing={Math.PI * 0.92} phase={3.4} label="协作机器人 · S6 值守" />
     </group>
   )
 }

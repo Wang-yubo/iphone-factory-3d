@@ -44,6 +44,8 @@ export function Hud() {
   const focusStationId = useFactory((s) => s.focusStationId)
   const focusId = useFactory((s) => s.focusProductId)
   const setFocusProduct = useFactory((s) => s.focusProduct)
+  const focusActor = useFactory((s) => s.focusActor)
+  const clearFocusActor = useFactory((s) => s.clearFocusActor)
   const drag = useFactory((s) => s.drag)
   const selected = useFactory((s) => s.selected)
   const toast = useFactory((s) => s.toast)
@@ -325,6 +327,16 @@ export function Hud() {
             跳过
           </button>
         </div>
+      )}
+
+      {focusActor && (
+        <aside className="actor-card">
+          <span className="actor-card__dot" />
+          <span className="actor-card__label">{focusActor.label}</span>
+          <button className="actor-card__close" onClick={() => clearFocusActor()}>
+            ×
+          </button>
+        </aside>
       )}
 
       {focus && (
