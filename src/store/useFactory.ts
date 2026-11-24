@@ -190,8 +190,8 @@ export const useFactory = create<FactoryStore>((set, get) => ({
       }
       return { difficulty: next }
     }),
-  focusProduct: (id) => set({ focusProductId: id }),
-  focusActorAt: (x, z, label) => set({ focusActor: { x, z, label } }),
+  focusProduct: (id) => set({ focusProductId: id, focusActor: null }),
+  focusActorAt: (x, z, label) => set({ focusActor: { x, z, label }, focusProductId: null }),
   clearFocusActor: () => set({ focusActor: null }),
   advanceGuide: (step) => set((s) => (s.guideStep >= step ? s : { guideStep: step })),
   skipGuide: () =>

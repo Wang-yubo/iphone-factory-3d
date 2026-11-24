@@ -2,6 +2,7 @@ import { OrbitControls } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef, type ComponentRef } from 'react'
 import * as THREE from 'three'
+import { FLAGS } from '@/lib/flags'
 import { CAMERA_PRESETS, stationPreset, stationX } from '@/lib/layout'
 import { sim } from '@/sim/sim'
 import { STATIONS } from '@/sim/recipes'
@@ -87,6 +88,32 @@ export function CameraRig() {
     }
     c.enabled = false
   }, [view, camera])
+
+
+  useEffect(() => {
+    if (!FLAGS.focusAt) return
+    const t = setTimeout(() => {
+      const [x, z] = FLAGS.focusAt as [number, number]
+      useFactory.getState().focusActorAt(x, z, '调试聚焦')
+    }, 2500)
+    return () => clearTimeout(t)
+  }, [])
+
+  // 点选人物：帧驱动，避免 effect 时序 / controls 未就绪导致不触发
+  const handledActor = useRef<unknown>(null)
+  useFrame(() => {
+    const c = controls.current
+    if (!c || !focusActor || focusActor === handledActor.current) return
+    handledActor.current = focusActor
+    anim.current = {
+      fromPos: camera.position.clone(),
+      toPos: new THREE.Vector3(focusActor.x + 2.1, 1.95, focusActor.z + 3.2),
+      fromTgt: c.target.clone(),
+      toTgt: new THREE.Vector3(focusActor.x, 1.05, focusActor.z),
+      t: 0,
+    }
+    c.enabled = false
+  })
 
   // 跟随在制品：镜头整体"骑"在工件上，同时保留手动轨道
   useFrame((_, delta) => {

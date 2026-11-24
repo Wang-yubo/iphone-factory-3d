@@ -1,6 +1,8 @@
 const q = new URLSearchParams(location.search)
 
 /** 开发期开关：只影响调试，不影响正常使用 */
+const focusAtRaw = q.get('focusat')
+
 export const FLAGS = {
   probe: q.has('probe'),
   ascii: q.has('ascii'),
@@ -14,4 +16,6 @@ export const FLAGS = {
   full: q.has('full'),
   /** 调试：强制显示新手引导 */
   guide: q.has('guide'),
+  /** 调试：?focusat=x,z —— 进场 2.5s 后自动聚焦该点，用来验证镜头 */
+  focusAt: focusAtRaw ? (focusAtRaw.split(',').map(Number) as [number, number]) : null,
 }
